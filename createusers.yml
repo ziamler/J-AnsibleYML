@@ -1,0 +1,36 @@
+---
+- hosts: "ansible-test"
+  remote_user : khushal
+  become: yes
+  vars:
+    users:
+    - "khushal"
+  tasks:
+
+  - name: Make sure we have a 'wheel' group
+    group:
+      name: wheel
+      state: present
+
+  - name: Allow 'wheel' group to have passwordless sudo
+    lineinfile:
+      dest: /etc/sudoers
+      state: present
+      regexp: '^%wheel'
+      line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+      validate: 'visudo -cf %s'
+
+  - name: Create user profiles
+    user:
+      name: "{{ item }}"
+      groups: "wheel"
+      state: present
+      createhome: yes
+
+    with_items: "{{ users }}"
+
+  - name: "Add authorized keys"
+    authorized_key:
+      user: "{{ item }}"
+      key: "{{ lookup('file', 'files/'+ item + '.pub') }}"
+    with_items: "{{ users }}"
